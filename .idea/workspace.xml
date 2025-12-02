@@ -7,6 +7,7 @@
     <list default="true" id="958a60e2-b001-4edf-8cc1-4c6bdfcfebdb" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/ .gitignore" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,7 +46,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -65,7 +66,7 @@
       <option name="presentableId" value="Default" />
       <updated>1764658345083</updated>
       <workItem from="1764658346866" duration="2395000" />
-      <workItem from="1764660828389" duration="4446000" />
+      <workItem from="1764660828389" duration="6419000" />
     </task>
     <servers />
   </component>

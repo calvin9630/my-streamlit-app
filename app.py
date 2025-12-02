@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
+import plotly.express as px # 導入 plotly.express
 
 from dotenv import load_dotenv
 import os
@@ -11,7 +12,6 @@ DB_HOST = st.secrets["mysql"]["host"]
 DB_USER = st.secrets["mysql"]["user"]
 DB_PASSWORD = st.secrets["mysql"]["password"]
 DB_NAME = st.secrets["mysql"]["database"]
-
 
 # --- 資料庫設定 (請填寫您的資料庫連線資訊) ---
 # 注意：為了安全起見，建議不要將敏感資訊直接寫在程式碼中，
@@ -72,7 +72,7 @@ def load_data(device_id):
 @st.cache_data
 def get_device_ids():
     """
-    從資料庫中獲取所有不重複的 device_id 列表，用於下拉式選單。
+    從資料庫中獲取所有不重複的 device_id 列表。
     """
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
@@ -84,29 +84,23 @@ def get_device_ids():
         return ids
     except mysql.connector.Error as err:
         st.error(f"無法獲取設備列表: {err}")
-        return [1]  # 預設值，以防連線失敗
+        return [1]
 
 
 # --- Streamlit UI 介面 ---
-
 def main():
-    # --- 介面設定與標題 ---
     st.set_page_config(
         page_title="安全監測數據分析儀表板",
-        layout="wide",  # 設定為 wide 佈局以更好地利用螢幕空間，適配手機時也會自動調整。
-        initial_sidebar_state="expanded"  # 預設展開側邊欄
+        layout="wide",
+        initial_sidebar_state="expanded"
     )
 
     st.title("安全監測數據分析儀表板")
     st.markdown("---")
 
-    # --- 側邊欄：控制項 (Requirement 1: 數據載入) ---
+    # --- 側邊欄：控制項 ---
     st.sidebar.header("數據篩選")
-
-    # 獲取所有 device_id 列表並建立下拉式選單
     device_ids = get_device_ids()
-
-    # 設置預設選中值 (預設值是1)
     default_index = device_ids.index(1) if 1 in device_ids else 0
     selected_device_id = st.sidebar.selectbox(
         "選擇設備編號 (device_id):",
@@ -121,29 +115,36 @@ def main():
     if data_df.empty:
         st.info(f"未找到 device_id = {selected_device_id} 的數據。")
     else:
-        # 1. 顯示數據表格 (Requirement 2: 顯示數據)
+        # 1. 顯示數據表格 (保持不變)
         st.header(f"設備 {selected_device_id} 數據表格")
         st.dataframe(data_df)
 
-        # 2. 繪製圖表 (Requirement 3: 圖表功能)
+        # 2. 繪製圖表 (重點更新：使用 Plotly)
         st.header(f"設備 {selected_device_id} 趨勢圖")
         st.subheader("x_value 和 y_value 隨時間變化")
 
-        # 使用 Streamlit 內建的 st.line_chart
-        # x 軸為 DataTime，y 軸為 x_value 和 y_value
-        st.line_chart(
+        # 使用 Plotly Express 建立折線圖
+        # x 軸為時間 (DataTime)，y 軸為 x_value 和 y_value
+        fig = px.line(
             data_df,
             x="DataTime",
-            y=["x_value", "y_value"]
+            y=["x_value", "y_value"],
+            title="數據讀數隨時間變化趨勢",
+            labels={"DataTime": "時間", "value": "讀數", "variable": "指標名稱"}
         )
 
+        # 調整圖表佈局，優化手機顯示和縮放體驗
+        fig.update_layout(
+            hovermode="x unified",  # 懸停時統一顯示多條線的數據
+            xaxis_title="時間 (DataTime)",
+            yaxis_title="讀數",
+            legend_title="指標"
+        )
+
+        # 顯示 Plotly 圖表，並確保其寬度適應容器 (手機上會自動縮放)
+        st.plotly_chart(fig, use_container_width=True)
+
         st.info(f"總共載入了 {len(data_df)} 筆數據。")
-
-    # --- 行動裝置適配性 (Requirement 4) ---
-    # Streamlit 本身具有良好的響應式設計。
-    # 設定 layout="wide" (在 st.set_page_config 中) 可以讓電腦螢幕有更寬的版面，
-    # 在手機上會自動縮小以適應螢幕寬度，無需額外程式碼調整。
-
 
 if __name__ == "__main__":
     main()
