@@ -7,10 +7,11 @@ import os
 
 load_dotenv()
 
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+DB_HOST = st.secrets["mysql"]["host"]
+DB_USER = st.secrets["mysql"]["user"]
+DB_PASSWORD = st.secrets["mysql"]["password"]
+DB_NAME = st.secrets["mysql"]["database"]
+
 
 # --- 資料庫設定 (請填寫您的資料庫連線資訊) ---
 # 注意：為了安全起見，建議不要將敏感資訊直接寫在程式碼中，
