@@ -77,16 +77,19 @@ def get_device_ids():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        query = "SELECT DISTINCT id,uuid,sensor_id FROM devices ORDER BY device_id ASC;"
+        query = "SELECT DISTINCT id,uuid,sensor_id FROM devices ORDER BY id ASC;"
         cursor.execute(query)
-        ids = [row[0] for row in cursor.fetchall()]
-        uuids = [row[1] for row in cursor.fetchall()]
-        sensor_ids = [row[2] for row in cursor.fetchall()]
+
+        rows = cursor.fetchall()
+
+        ids = [row[0] for row in rows]
+        uuids = [row[1] for row in rows]
+        sensor_ids = [row[2] for row in rows]
         conn.close()
         return ids,uuids,sensor_ids
     except mysql.connector.Error as err:
         st.error(f"無法獲取設備列表: {err}")
-        return [1]
+        return [], [], []
 
 
 # --- Streamlit UI 介面 ---
@@ -120,8 +123,6 @@ def main():
         # 先複製一份，並把 name 改成 TI1 / TI2 這種 label
         plot_df = data_df.copy()
         plot_df["TI"] = plot_df["name"].str.upper()  # ti1 -> TI1, ti2 -> TI2
-
-        #test
 
         # 轉成 long format：一列只放一個值
         # DataTime, TI, axis（X / Y）, value（數值）
