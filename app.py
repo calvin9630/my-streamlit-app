@@ -123,7 +123,7 @@ def main():
         # 1. 顯示數據表格 (保持不變)
         st.header(f"設備 {selected_device_id} 數據表格")
         st.dataframe(data_df)
-        sensor_num=sensor_ids.split(',')
+        sensor_num=sensor_ids[device_uuids.index(selected_device_id)].split(',')
 
         # 2. 繪製圖表 (重點更新：使用 Plotly)
         st.header(f"設備 {selected_device_id} 趨勢圖")
