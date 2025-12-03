@@ -5,6 +5,19 @@ import plotly.express as px # 導入 plotly.express
 
 from dotenv import load_dotenv
 import os
+import streamlit as st
+
+# --- 隱藏 Streamlit 預設物件的 CSS ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stApp > header {display: none;} /* 強制隱藏上方工具列 */
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 
 load_dotenv()
 
