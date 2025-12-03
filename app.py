@@ -45,7 +45,7 @@ def load_data(device_id):
         query = """
         SELECT DataTime, name, x_value, y_value
         FROM tis
-        WHERE device_id = %s and datatime>'2025-08-06'
+        WHERE device_id = %s and datatime>'2025-08-07'
         ORDER BY DataTime DESC;
         """
         cursor.execute(query, (device_id,))
@@ -120,6 +120,15 @@ def main():
     if data_df.empty:
         st.info(f"未找到 device_id = {selected_device_id} 的數據。")
     else:
+        # 1. 顯示數據表格 (保持不變)
+        st.header(f"設備 {selected_device_id} 數據表格")
+        st.dataframe(data_df)
+        sensor_num=sensor_ids.split(',')
+
+        # 2. 繪製圖表 (重點更新：使用 Plotly)
+        st.header(f"設備 {selected_device_id} 趨勢圖")
+        st.subheader(f"TI{sensor_num[0]}及TI{sensor_num[1]}的x_value 和 y_value資料 隨時間變化")
+
         # 先複製一份，並把 name 改成 TI1 / TI2 這種 label
         plot_df = data_df.copy()
         plot_df["TI"] = plot_df["name"].str.upper()  # ti1 -> TI1, ti2 -> TI2
