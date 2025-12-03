@@ -6,6 +6,14 @@ import plotly.express as px # 導入 plotly.express
 from dotenv import load_dotenv
 import os
 import streamlit as st
+import random
+
+marker_shapes = [
+    "circle", "square", "diamond",
+    "triangle-up", "triangle-down",
+    "cross", "x", "star",
+    "hexagon", "pentagon", "hourglass"
+]
 
 # --- 隱藏 Streamlit 預設物件的 CSS ---
 hide_st_style = """
@@ -164,6 +172,21 @@ def main():
         # 建一個「曲線名稱」欄位：TI1_X、TI1_Y、TI2_X、TI2_Y
         long_df["series"] = long_df["TI"] + "_" + long_df["axis"]
 
+        axes = ["X", "Y"]
+
+        symbol_map = {}
+
+        for sensor in sensor_num:
+            for axis in axes:
+                # key 例如：TI1_X
+                key = f"TI{sensor}_{axis}"
+
+                # 隨機挑一個 marker 形狀
+                shape = random.choice(marker_shapes)
+
+                # 填入 symbol_map
+                symbol_map[key] = shape
+
         # 用 Plotly 畫圖
         fig = px.line(
             long_df,
@@ -175,24 +198,21 @@ def main():
             title="數據讀數隨時間變化趨勢",
             labels={
                 "DataTime": "時間",
-                "value": "讀數",
+                "value": "讀數(度)",
                 "series": "設備 / 軸向"
             },
-            # 可選：指定每條線的點形狀（你有提到正方形、三角形、圓形、菱形）
-            symbol_map={
-                "TI1_X": "circle",  # 圓形
-                "TI1_Y": "square",  # 正方形
-                "TI2_X": "diamond",  # 菱形
-                "TI2_Y": "triangle-up",  # 三角形
-            },
+            # 隨機生每條線的點形狀
+            symbol_map=symbol_map,
         )
 
         fig.update_layout(
             hovermode="x unified",
             xaxis_title="時間 (DataTime)",
-            yaxis_title="讀數",
+            yaxis_title="讀數(度)",
             legend_title="設備 / 軸向",
         )
+        # 將英文月份改成純數字格式
+        fig.update_xaxes(tickformat="%Y-%m-%d")
 
         st.plotly_chart(fig, use_container_width=True)
 
