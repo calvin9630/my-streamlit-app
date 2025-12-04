@@ -50,7 +50,7 @@ DB_CONFIG = {
 
 # @st.cache_data decorator：用於緩存資料，當參數不變時，不會重複執行資料庫查詢，
 # 提升應用程式效能。
-@st.cache_data
+@st.cache_data(ttl=60)
 def load_data(device_id):
     """
     從 MySQL 資料庫中載入特定 device_id 的數據。
