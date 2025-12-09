@@ -128,11 +128,16 @@ def main():
     st.sidebar.header("數據篩選")
     device_ids,device_uuids,sensor_ids = get_device_ids()
     default_index = device_ids.index(1) if 1 in device_ids else 0
-    selected_device_id = st.sidebar.selectbox(
+    selected_device_id = st.selectbox(
         "選擇設備編號 (device_id):",
         options=device_uuids,
         index=default_index
     )
+    # selected_device_id = st.sidebar.selectbox(
+    #     "選擇設備編號 (device_id):",
+    #     options=device_uuids,
+    #     index=default_index
+    # )
 
     # 載入選定設備的數據
     data_df = load_data(device_ids[device_uuids.index(selected_device_id)])
