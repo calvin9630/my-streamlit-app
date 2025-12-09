@@ -148,7 +148,11 @@ def main():
 
         # 2. 繪製圖表 (重點更新：使用 Plotly)
         st.header(f"設備 {selected_device_id} 趨勢圖")
-        st.subheader(f"TI{sensor_num[0]}及TI{sensor_num[1]}的x_value 和 y_value資料 隨時間變化")
+        Ti_name=''
+        for num in sensor_num:
+            Ti_name+=f"TI{num}及"
+        Ti_name=Ti_name[:len(Ti_name)-1]
+        st.subheader(f"{Ti_name}的x_value 和 y_value資料 隨時間變化")
 
         # 先複製一份，並把 name 改成 TI1 / TI2 這種 label
         plot_df = data_df.copy()
