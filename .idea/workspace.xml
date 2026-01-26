@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="958a60e2-b001-4edf-8cc1-4c6bdfcfebdb" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/ .gitignore" beforeDir="false" />
+    <list default="true" id="958a60e2-b001-4edf-8cc1-4c6bdfcfebdb" name="Changes" comment="把選單搬到主畫面">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
     </list>
@@ -35,21 +34,51 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.app.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.app.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
+  <component name="RunManager">
+    <configuration name="app" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Streamlit_Web_App" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/app.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.app" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -66,14 +95,106 @@
       <option name="presentableId" value="Default" />
       <updated>1764658345083</updated>
       <workItem from="1764658346866" duration="2395000" />
-      <workItem from="1764660828389" duration="6419000" />
+      <workItem from="1764660828389" duration="16520000" />
+      <workItem from="1764827793949" duration="469000" />
+      <workItem from="1764828539865" duration="67000" />
+      <workItem from="1764840041628" duration="184000" />
+      <workItem from="1765244659976" duration="952000" />
+      <workItem from="1765279873867" duration="2119000" />
+      <workItem from="1766045104522" duration="604000" />
+      <workItem from="1769397291472" duration="1233000" />
     </task>
+    <task id="LOCAL-00001" summary="測試PyCharm圖形介面的Commit流程">
+      <option name="closed" value="true" />
+      <created>1764727423686</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1764727423686</updated>
+    </task>
+    <task id="LOCAL-00002" summary="修改get_device_ids函數錯誤的問題">
+      <option name="closed" value="true" />
+      <created>1764728287070</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1764728287070</updated>
+    </task>
+    <task id="LOCAL-00003" summary="增加顯示數據表格">
+      <option name="closed" value="true" />
+      <created>1764729009361</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764729009361</updated>
+    </task>
+    <task id="LOCAL-00004" summary="修正130行語法錯誤">
+      <option name="closed" value="true" />
+      <created>1764729232346</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764729232346</updated>
+    </task>
+    <task id="LOCAL-00005" summary="強制隱藏上方工具列">
+      <option name="closed" value="true" />
+      <created>1764730848429</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1764730848429</updated>
+    </task>
+    <task id="LOCAL-00006" summary="更改為隨機生每條線的點形狀">
+      <option name="closed" value="true" />
+      <created>1764733690395</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1764733690395</updated>
+    </task>
+    <task id="LOCAL-00007" summary="設定快取的有效時間為60秒">
+      <option name="closed" value="true" />
+      <created>1764828203687</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1764828203687</updated>
+    </task>
+    <task id="LOCAL-00008" summary="修正151行錯誤">
+      <option name="closed" value="true" />
+      <created>1765245011871</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1765245011871</updated>
+    </task>
+    <task id="LOCAL-00009" summary="把選單搬到主畫面">
+      <option name="closed" value="true" />
+      <created>1765280138536</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1765280138536</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="測試PyCharm圖形介面的Commit流程" />
+    <MESSAGE value="修改get_device_ids函數錯誤的問題" />
+    <MESSAGE value="增加顯示數據表格" />
+    <MESSAGE value="修正130行語法錯誤" />
+    <MESSAGE value="強制隱藏上方工具列" />
+    <MESSAGE value="更改為隨機生每條線的點形狀" />
+    <MESSAGE value="設定快取的有效時間為60秒" />
+    <MESSAGE value="修正151行錯誤" />
+    <MESSAGE value="把選單搬到主畫面" />
+    <option name="LAST_COMMIT_MESSAGE" value="把選單搬到主畫面" />
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Streamlit_Web_App$app.coverage" NAME="app Coverage Results" MODIFIED="1764663196367" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Streamlit_Web_App$app.coverage" NAME="app Coverage Results" MODIFIED="1764840072211" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
