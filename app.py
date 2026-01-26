@@ -10,11 +10,10 @@ import itertools
 st.set_page_config(
     page_title="安全監測數據分析儀表板",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # 預設收起側邊欄，因為我們把功能移出來了
 )
 
 # --- 載入環境變數 ---
-# 優先嘗試載入 .env 檔案 (本地開發用)
 load_dotenv()
 
 # --- 隱藏 Streamlit 預設物件的 CSS ---
@@ -36,18 +35,15 @@ def get_db_config():
     """
     config = {}
     try:
-        # 嘗試從 Streamlit Secrets 讀取 (建議用於 Cloud 或有設定 secrets.toml)
         if "mysql" in st.secrets:
             config = {
                 "host": st.secrets["mysql"]["host"],
                 "user": st.secrets["mysql"]["user"],
                 "password": st.secrets["mysql"]["password"],
                 "database": st.secrets["mysql"]["database"],
-                # 加入 connect_timeout 避免網路不穩時卡死
                 "connect_timeout": 10
             }
         else:
-            # 備用：從環境變數讀取
             config = {
                 "host": os.getenv("DB_HOST"),
                 "user": os.getenv("DB_USER"),
@@ -75,9 +71,10 @@ def get_marker_generator():
 # --- 數據載入與資料庫連線功能 ---
 
 @st.cache_data(ttl=60)
-def load_data(device_id, start_date):
+def load_data(device_id):
     """
     從 MySQL 資料庫中載入特定 device_id 的 TIS 數據。
+    已移除時間篩選，讀取所有資料。
     """
     db_config = get_db_config()
     if not db_config.get("host"):
@@ -88,14 +85,14 @@ def load_data(device_id, start_date):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
+        # 移除時間條件，讀取該設備所有資料
         query = """
         SELECT DataTime, name, x_value, y_value
         FROM tis
-        WHERE device_id = %s AND DataTime >= %s
+        WHERE device_id = %s
         ORDER BY DataTime DESC;
         """
-        date_str = start_date.strftime('%Y-%m-%d')
-        cursor.execute(query, (device_id, date_str))
+        cursor.execute(query, (device_id,))
 
         data = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
@@ -115,9 +112,10 @@ def load_data(device_id, start_date):
 
 
 @st.cache_data(ttl=60)
-def load_vgs_data(device_id, start_date):
+def load_vgs_data(device_id):
     """
     從 MySQL 資料庫中載入特定 device_id 的 VGS 數據。
+    已移除時間篩選，讀取所有資料。
     """
     db_config = get_db_config()
     if not db_config.get("host"):
@@ -127,15 +125,14 @@ def load_vgs_data(device_id, start_date):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # 根據 VGS 資料表結構查詢
+        # 移除時間條件，讀取該設備所有資料
         query = """
         SELECT DataTime, name, value1, value2
         FROM vgs
-        WHERE device_id = %s AND DataTime >= %s
+        WHERE device_id = %s
         ORDER BY DataTime DESC;
         """
-        date_str = start_date.strftime('%Y-%m-%d')
-        cursor.execute(query, (device_id, date_str))
+        cursor.execute(query, (device_id,))
 
         data = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
@@ -150,7 +147,6 @@ def load_vgs_data(device_id, start_date):
         return df
 
     except mysql.connector.Error as err:
-        # 不顯示錯誤，避免干擾主畫面，僅在 log 紀錄或回傳空值
         # st.error(f"VGS 資料載入錯誤: {err}")
         return pd.DataFrame()
 
@@ -184,57 +180,48 @@ def get_device_ids():
 
 # --- 主程式 ---
 def main():
-    st.set_page_config(
-        page_title="安全監測數據分析儀表板",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-
     st.title("🏗️ 安全監測數據分析儀表板")
-    st.markdown("---")
 
-    # --- 側邊欄：控制項 ---
-    st.sidebar.header("🛠️ 監測設定")
-
-    # 1. 取得設備列表
+    # --- 1. 取得設備列表 ---
     device_ids, device_uuids, sensor_ids = get_device_ids()
 
     if not device_ids:
         st.warning("無法讀取設備列表，請檢查資料庫連線。")
         return
 
-    # 2. 設備選擇
-    default_index = 0
-    if 1 in device_ids:
-        default_index = device_ids.index(1)
+    # --- 2. 設備選擇 (移至主畫面最上方) ---
+    # 使用 container 包住，讓排版稍微分開一點
+    with st.container():
+        # 設定預設選項
+        default_index = 0
+        if 1 in device_ids:
+            default_index = device_ids.index(1)
 
-    selected_device_uuid = st.sidebar.selectbox(
-        "選擇設備編號 (UUID):",
-        options=device_uuids,
-        index=default_index
-    )
+        col1, col2 = st.columns([1, 2])  # 調整比例，讓下拉選單在寬螢幕不要太長
+        with col1:
+            st.markdown("### 🛠️ 設備選擇")
+            selected_device_uuid = st.selectbox(
+                "請選擇設備編號 (UUID):",
+                options=device_uuids,
+                index=default_index,
+                label_visibility="collapsed"  # 隱藏標籤，直接顯示標題
+            )
 
+    st.markdown("---")
+
+    # 取得對應的 ID 與 Sensor 設定
     current_index = device_uuids.index(selected_device_uuid)
     selected_device_id = device_ids[current_index]
     selected_sensor_str = sensor_ids[current_index]
 
-    # 3. 日期篩選
-    st.sidebar.subheader("時間區間篩選")
-    import datetime
-    default_start_date = datetime.date(2025, 8, 7)
-    start_date = st.sidebar.date_input(
-        "起始日期 (DataTime >=)",
-        value=default_start_date
-    )
-
-    # --- 載入數據 (平行載入 TIS 和 VGS) ---
-    with st.spinner('數據載入中...'):
-        tis_df = load_data(selected_device_id, start_date)
-        vgs_df = load_vgs_data(selected_device_id, start_date)
+    # --- 3. 載入數據 (平行載入 TIS 和 VGS，移除 start_date) ---
+    with st.spinner(f'正在讀取 {selected_device_uuid} 的所有歷史數據...'):
+        tis_df = load_data(selected_device_id)
+        vgs_df = load_vgs_data(selected_device_id)
 
     # --- TIS 圖表區塊 ---
     if tis_df.empty:
-        st.info(f"設備 {selected_device_uuid} 在 {start_date} 之後無 TIS (傾斜儀) 數據。")
+        st.info(f"設備 {selected_device_uuid} 目前無 TIS (傾斜儀) 數據。")
     else:
         sensor_list = str(selected_sensor_str).split(',') if selected_sensor_str else []
         ti_title = "、".join([f"TI{num}" for num in sensor_list])
@@ -281,11 +268,11 @@ def main():
     # --- 分隔線 ---
     st.markdown("---")
 
-    # --- VGS 圖表區塊 (新增) ---
+    # --- VGS 圖表區塊 ---
     st.header(f"📊 VGS 監測數據")
 
     if vgs_df.empty:
-        st.info(f"設備 {selected_device_uuid} 在 {start_date} 之後無 VGS 數據。")
+        st.info(f"設備 {selected_device_uuid} 目前無 VGS 數據。")
     else:
         # VGS 數據處理
         vgs_plot = vgs_df.copy()

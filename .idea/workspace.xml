@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="958a60e2-b001-4edf-8cc1-4c6bdfcfebdb" name="Changes" comment="把選單搬到主畫面">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -103,6 +102,7 @@
       <workItem from="1765279873867" duration="2119000" />
       <workItem from="1766045104522" duration="604000" />
       <workItem from="1769397291472" duration="1233000" />
+      <workItem from="1769418570362" duration="336000" />
     </task>
     <task id="LOCAL-00001" summary="測試PyCharm圖形介面的Commit流程">
       <option name="closed" value="true" />
