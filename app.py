@@ -1,19 +1,21 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-import plotly.express as px # 導入 plotly.express
-
+import plotly.express as px
 from dotenv import load_dotenv
 import os
-import streamlit as st
-import random
+import itertools
 
-marker_shapes = [
-    "circle", "square", "diamond",
-    "triangle-up", "triangle-down",
-    "cross", "x", "star",
-    "hexagon", "pentagon", "hourglass"
-]
+# --- 設定頁面配置 (必須放在第一行) ---
+st.set_page_config(
+    page_title="安全監測數據分析儀表板",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- 載入環境變數 ---
+# 優先嘗試載入 .env 檔案 (本地開發用)
+load_dotenv()
 
 # --- 隱藏 Streamlit 預設物件的 CSS ---
 hide_st_style = """
@@ -21,73 +23,136 @@ hide_st_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
-            .stApp > header {display: none;} /* 強制隱藏上方工具列 */
+            .stApp > header {display: none;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 
-load_dotenv()
+# --- 資料庫連線設定 ---
+def get_db_config():
+    """
+    獲取資料庫配置，優先使用 st.secrets，如果沒有則使用 os.getenv (.env)
+    """
+    config = {}
+    try:
+        # 嘗試從 Streamlit Secrets 讀取 (建議用於 Cloud 或有設定 secrets.toml)
+        if "mysql" in st.secrets:
+            config = {
+                "host": st.secrets["mysql"]["host"],
+                "user": st.secrets["mysql"]["user"],
+                "password": st.secrets["mysql"]["password"],
+                "database": st.secrets["mysql"]["database"],
+                # 加入 connect_timeout 避免網路不穩時卡死
+                "connect_timeout": 10
+            }
+        else:
+            # 備用：從環境變數讀取
+            config = {
+                "host": os.getenv("DB_HOST"),
+                "user": os.getenv("DB_USER"),
+                "password": os.getenv("DB_PASSWORD"),
+                "database": os.getenv("DB_NAME"),
+                "connect_timeout": 10
+            }
+    except Exception as e:
+        st.error(f"設定讀取錯誤: {e}")
+    return config
 
-DB_HOST = st.secrets["mysql"]["host"]
-DB_USER = st.secrets["mysql"]["user"]
-DB_PASSWORD = st.secrets["mysql"]["password"]
-DB_NAME = st.secrets["mysql"]["database"]
 
-# --- 資料庫設定 (請填寫您的資料庫連線資訊) ---
-# 注意：為了安全起見，建議不要將敏感資訊直接寫在程式碼中，
-# 而是使用環境變數或 Streamlit Secrets (st.secrets) 來管理。
-# 這裡提供範例填寫方式：
-DB_CONFIG = {
-    "host": DB_HOST,
-    "user": DB_USER,
-    "password": DB_PASSWORD,
-    "database": DB_USER
-}
+# --- 輔助函式：符號生成器 ---
+def get_marker_generator():
+    """
+    產生一個無限循環的符號迭代器，確保圖表符號一致性
+    """
+    marker_shapes = [
+        "circle", "square", "diamond", "triangle-up", "triangle-down",
+        "cross", "x", "star", "hexagon", "pentagon", "hourglass"
+    ]
+    return itertools.cycle(marker_shapes)
 
 
 # --- 數據載入與資料庫連線功能 ---
 
-# @st.cache_data decorator：用於緩存資料，當參數不變時，不會重複執行資料庫查詢，
-# 提升應用程式效能。
 @st.cache_data(ttl=60)
-def load_data(device_id):
+def load_data(device_id, start_date):
     """
-    從 MySQL 資料庫中載入特定 device_id 的數據。
+    從 MySQL 資料庫中載入特定 device_id 的 TIS 數據。
     """
+    db_config = get_db_config()
+    if not db_config.get("host"):
+        st.error("找不到資料庫設定，請檢查 .streamlit/secrets.toml 或 .env 檔案")
+        return pd.DataFrame()
+
     try:
-        # 建立資料庫連線
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # 執行 SQL 查詢 (Requirement 1)
-        # 查詢 device_id = selected_id 的所有資料
-        # 注意：使用參數化查詢來防止 SQL 注入。
         query = """
         SELECT DataTime, name, x_value, y_value
         FROM tis
-        WHERE device_id = %s and datatime>'2025-08-07'
+        WHERE device_id = %s AND DataTime >= %s
         ORDER BY DataTime DESC;
         """
-        cursor.execute(query, (device_id,))
+        date_str = start_date.strftime('%Y-%m-%d')
+        cursor.execute(query, (device_id, date_str))
 
-        # 獲取所有結果並將其轉換為 Pandas DataFrame
         data = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
         df = pd.DataFrame(data, columns=column_names)
 
-        # 關閉連線
         cursor.close()
         conn.close()
 
-        # 將 DataTime 欄位轉換為 datetime 物件，方便繪圖處理
-        df['DataTime'] = pd.to_datetime(df['DataTime'])
+        if not df.empty:
+            df['DataTime'] = pd.to_datetime(df['DataTime'])
 
         return df
 
     except mysql.connector.Error as err:
-        st.error(f"資料庫連線錯誤: {err}")
-        return pd.DataFrame()  # 返回空 DataFrame 以防止應用程式崩潰
+        st.error(f"TIS 資料載入錯誤: {err}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=60)
+def load_vgs_data(device_id, start_date):
+    """
+    從 MySQL 資料庫中載入特定 device_id 的 VGS 數據。
+    """
+    db_config = get_db_config()
+    if not db_config.get("host"):
+        return pd.DataFrame()
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # 根據 VGS 資料表結構查詢
+        query = """
+        SELECT DataTime, name, value1, value2
+        FROM vgs
+        WHERE device_id = %s AND DataTime >= %s
+        ORDER BY DataTime DESC;
+        """
+        date_str = start_date.strftime('%Y-%m-%d')
+        cursor.execute(query, (device_id, date_str))
+
+        data = cursor.fetchall()
+        column_names = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(data, columns=column_names)
+
+        cursor.close()
+        conn.close()
+
+        if not df.empty:
+            df['DataTime'] = pd.to_datetime(df['DataTime'])
+
+        return df
+
+    except mysql.connector.Error as err:
+        # 不顯示錯誤，避免干擾主畫面，僅在 log 紀錄或回傳空值
+        # st.error(f"VGS 資料載入錯誤: {err}")
+        return pd.DataFrame()
 
 
 @st.cache_data
@@ -95,10 +160,14 @@ def get_device_ids():
     """
     從資料庫中獲取所有不重複的 device_id 列表。
     """
+    db_config = get_db_config()
+    if not db_config.get("host"):
+        return [], [], []
+
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        query = "SELECT DISTINCT id,uuid,sensor_id FROM devices ORDER BY id ASC;"
+        query = "SELECT DISTINCT id, uuid, sensor_id FROM devices ORDER BY id ASC;"
         cursor.execute(query)
 
         rows = cursor.fetchall()
@@ -107,125 +176,161 @@ def get_device_ids():
         uuids = [row[1] for row in rows]
         sensor_ids = [row[2] for row in rows]
         conn.close()
-        return ids,uuids,sensor_ids
+        return ids, uuids, sensor_ids
     except mysql.connector.Error as err:
         st.error(f"無法獲取設備列表: {err}")
         return [], [], []
 
 
-# --- Streamlit UI 介面 ---
+# --- 主程式 ---
 def main():
-    st.set_page_config(
-        page_title="安全監測數據分析儀表板",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-
-    st.title("安全監測數據分析儀表板")
+    st.title("🏗️ 安全監測數據分析儀表板")
     st.markdown("---")
 
     # --- 側邊欄：控制項 ---
-    st.sidebar.header("數據篩選")
-    device_ids,device_uuids,sensor_ids = get_device_ids()
-    default_index = device_ids.index(1) if 1 in device_ids else 0
-    selected_device_id = st.selectbox(
-        "選擇設備編號 (device_id):",
+    st.sidebar.header("🛠️ 監測設定")
+
+    # 1. 取得設備列表
+    device_ids, device_uuids, sensor_ids = get_device_ids()
+
+    if not device_ids:
+        st.warning("無法讀取設備列表，請檢查資料庫連線。")
+        return
+
+    # 2. 設備選擇
+    default_index = 0
+    if 1 in device_ids:
+        default_index = device_ids.index(1)
+
+    selected_device_uuid = st.sidebar.selectbox(
+        "選擇設備編號 (UUID):",
         options=device_uuids,
         index=default_index
     )
-    # selected_device_id = st.sidebar.selectbox(
-    #     "選擇設備編號 (device_id):",
-    #     options=device_uuids,
-    #     index=default_index
-    # )
 
-    # 載入選定設備的數據
-    data_df = load_data(device_ids[device_uuids.index(selected_device_id)])
+    current_index = device_uuids.index(selected_device_uuid)
+    selected_device_id = device_ids[current_index]
+    selected_sensor_str = sensor_ids[current_index]
 
-    # --- 主介面：顯示數據與圖表 ---
-    if data_df.empty:
-        st.info(f"未找到 device_id = {selected_device_id} 的數據。")
+    # 3. 日期篩選
+    st.sidebar.subheader("時間區間篩選")
+    import datetime
+    default_start_date = datetime.date(2025, 8, 7)
+    start_date = st.sidebar.date_input(
+        "起始日期 (DataTime >=)",
+        value=default_start_date
+    )
+
+    # --- 載入數據 (平行載入 TIS 和 VGS) ---
+    with st.spinner('數據載入中...'):
+        tis_df = load_data(selected_device_id, start_date)
+        vgs_df = load_vgs_data(selected_device_id, start_date)
+
+    # --- TIS 圖表區塊 ---
+    if tis_df.empty:
+        st.info(f"設備 {selected_device_uuid} 在 {start_date} 之後無 TIS (傾斜儀) 數據。")
     else:
-        # 1. 顯示數據表格 (保持不變)
-        st.header(f"設備 {selected_device_id} 數據表格")
-        st.dataframe(data_df)
-        sensor_num=sensor_ids[device_uuids.index(selected_device_id)].split(',')
+        sensor_list = str(selected_sensor_str).split(',') if selected_sensor_str else []
+        ti_title = "、".join([f"TI{num}" for num in sensor_list])
 
-        # 2. 繪製圖表 (重點更新：使用 Plotly)
-        st.header(f"設備 {selected_device_id} 趨勢圖")
-        Ti_name=''
-        for num in sensor_num:
-            Ti_name+=f"TI{num}及"
-        Ti_name=Ti_name[:len(Ti_name)-1]
-        st.subheader(f"{Ti_name}的x_value 和 y_value資料 隨時間變化")
+        plot_df = tis_df.copy()
+        plot_df["TI"] = plot_df["name"].str.upper()
 
-        # 先複製一份，並把 name 改成 TI1 / TI2 這種 label
-        plot_df = data_df.copy()
-        plot_df["TI"] = plot_df["name"].str.upper()  # ti1 -> TI1, ti2 -> TI2
-
-        # 轉成 long format：一列只放一個值
-        # DataTime, TI, axis（X / Y）, value（數值）
         long_df = plot_df.melt(
             id_vars=["DataTime", "TI"],
             value_vars=["x_value", "y_value"],
-            var_name="axis",  # 這裡會是 'x_value' / 'y_value'
-            value_name="value"  # 真正要畫的數值
+            var_name="axis",
+            value_name="value"
         )
-
-        # 把 axis 改成比較好看的標籤：X / Y
-        long_df["axis"] = long_df["axis"].map({
-            "x_value": "X",
-            "y_value": "Y",
-        })
-
-        # 建一個「曲線名稱」欄位：TI1_X、TI1_Y、TI2_X、TI2_Y
+        long_df["axis"] = long_df["axis"].map({"x_value": "X", "y_value": "Y"})
         long_df["series"] = long_df["TI"] + "_" + long_df["axis"]
 
-        axes = ["X", "Y"]
-
         symbol_map = {}
+        unique_series = sorted(long_df["series"].unique())
+        marker_gen = get_marker_generator()
+        for series_name in unique_series:
+            symbol_map[series_name] = next(marker_gen)
 
-        for sensor in sensor_num:
-            for axis in axes:
-                # key 例如：TI1_X
-                key = f"TI{sensor}_{axis}"
+        st.header(f"📈 TIS 傾斜儀趨勢圖")
+        st.caption(f"監測儀器: {ti_title} | 設備: {selected_device_uuid}")
 
-                # 隨機挑一個 marker 形狀
-                shape = random.choice(marker_shapes)
-
-                # 填入 symbol_map
-                symbol_map[key] = shape
-
-        # 用 Plotly 畫圖
         fig = px.line(
             long_df,
             x="DataTime",
             y="value",
-            color="series",  # 4 條線，不同顏色
-            symbol="series",  # 4 種不同點形狀
-            markers=True,  # 顯示點
-            title="數據讀數隨時間變化趨勢",
-            labels={
-                "DataTime": "時間",
-                "value": "讀數(度)",
-                "series": "設備 / 軸向"
-            },
-            # 隨機生每條線的點形狀
+            color="series",
+            symbol="series",
+            markers=True,
+            title=f"傾斜儀讀數變化",
+            labels={"DataTime": "監測時間", "value": "讀數", "series": "測點軸向"},
             symbol_map=symbol_map,
         )
-
-        fig.update_layout(
-            hovermode="x unified",
-            xaxis_title="時間 (DataTime)",
-            yaxis_title="讀數(度)",
-            legend_title="設備 / 軸向",
-        )
-        # 將英文月份改成純數字格式
-        fig.update_xaxes(tickformat="%Y-%m-%d")
-
+        fig.update_layout(hovermode="x unified", height=450, template="plotly_white")
+        fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
         st.plotly_chart(fig, use_container_width=True)
 
-        st.info(f"總共載入了 {len(data_df)} 筆數據。")
+        with st.expander("查看 TIS 詳細數據表格"):
+            st.dataframe(tis_df, use_container_width=True)
+
+    # --- 分隔線 ---
+    st.markdown("---")
+
+    # --- VGS 圖表區塊 (新增) ---
+    st.header(f"📊 VGS 監測數據")
+
+    if vgs_df.empty:
+        st.info(f"設備 {selected_device_uuid} 在 {start_date} 之後無 VGS 數據。")
+    else:
+        # VGS 數據處理
+        vgs_plot = vgs_df.copy()
+        vgs_plot["Name"] = vgs_plot["name"].str.upper()
+
+        # 轉成長格式
+        vgs_long = vgs_plot.melt(
+            id_vars=["DataTime", "Name"],
+            value_vars=["value1", "value2"],
+            var_name="Channel",
+            value_name="Reading"
+        )
+
+        # 定義顯示名稱 (例如: VG01_value1)
+        vgs_long["Series"] = vgs_long["Name"] + "_" + vgs_long["Channel"]
+
+        # VGS 符號邏輯
+        vgs_symbol_map = {}
+        vgs_unique_series = sorted(vgs_long["Series"].unique())
+        vgs_marker_gen = get_marker_generator()
+        for s_name in vgs_unique_series:
+            vgs_symbol_map[s_name] = next(vgs_marker_gen)
+
+        st.caption(f"設備: {selected_device_uuid} | 包含 value1 與 value2 讀數")
+
+        fig_vgs = px.line(
+            vgs_long,
+            x="DataTime",
+            y="Reading",
+            color="Series",
+            symbol="Series",
+            markers=True,
+            title=f"VGS 讀數變化趨勢",
+            labels={"DataTime": "監測時間", "Reading": "監測讀數", "Series": "測點通道"},
+            symbol_map=vgs_symbol_map
+        )
+
+        fig_vgs.update_layout(
+            hovermode="x unified",
+            height=450,
+            template="plotly_white",
+            yaxis_title="讀數 (Value)"
+        )
+        fig_vgs.update_xaxes(tickformat="%Y-%m-%d %H:%M")
+
+        st.plotly_chart(fig_vgs, use_container_width=True)
+
+        with st.expander("查看 VGS 詳細數據表格"):
+            st.dataframe(vgs_df, use_container_width=True)
+            st.info(f"總筆數: {len(vgs_df)}")
+
 
 if __name__ == "__main__":
     main()
