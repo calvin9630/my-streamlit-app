@@ -184,6 +184,12 @@ def get_device_ids():
 
 # --- 主程式 ---
 def main():
+    st.set_page_config(
+        page_title="安全監測數據分析儀表板",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
     st.title("🏗️ 安全監測數據分析儀表板")
     st.markdown("---")
 
