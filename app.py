@@ -190,21 +190,19 @@ def main():
         return
 
     # --- 2. 設備選擇 (移至主畫面最上方) ---
-    # 使用 container 包住，讓排版稍微分開一點
     with st.container():
-        # 設定預設選項
         default_index = 0
         if 1 in device_ids:
             default_index = device_ids.index(1)
 
-        col1, col2 = st.columns([1, 2])  # 調整比例，讓下拉選單在寬螢幕不要太長
+        col1, col2 = st.columns([1, 2])
         with col1:
             st.markdown("### 🛠️ 設備選擇")
             selected_device_uuid = st.selectbox(
                 "請選擇設備編號 (UUID):",
                 options=device_uuids,
                 index=default_index,
-                label_visibility="collapsed"  # 隱藏標籤，直接顯示標題
+                label_visibility="collapsed"
             )
 
     st.markdown("---")
@@ -214,18 +212,28 @@ def main():
     selected_device_id = device_ids[current_index]
     selected_sensor_str = sensor_ids[current_index]
 
-    # --- 3. 載入數據 (平行載入 TIS 和 VGS，移除 start_date) ---
+    # --- 3. 載入數據 ---
     with st.spinner(f'正在讀取 {selected_device_uuid} 的所有歷史數據...'):
         tis_df = load_data(selected_device_id)
         vgs_df = load_vgs_data(selected_device_id)
 
-    # --- TIS 圖表區塊 ---
+    # ==========================
+    #      TIS 傾斜儀區塊
+    # ==========================
     if tis_df.empty:
         st.info(f"設備 {selected_device_uuid} 目前無 TIS (傾斜儀) 數據。")
     else:
         sensor_list = str(selected_sensor_str).split(',') if selected_sensor_str else []
         ti_title = "、".join([f"TI{num}" for num in sensor_list])
 
+        st.header(f"📈 TIS 傾斜儀監測")
+        st.caption(f"監測儀器: {ti_title} | 設備: {selected_device_uuid}")
+
+        # 1. 先顯示詳細數據表格
+        with st.expander("查看 TIS 詳細數據表格", expanded=True):
+            st.dataframe(tis_df, use_container_width=True)
+
+        # 2. 再顯示趨勢圖
         plot_df = tis_df.copy()
         plot_df["TI"] = plot_df["name"].str.upper()
 
@@ -244,9 +252,6 @@ def main():
         for series_name in unique_series:
             symbol_map[series_name] = next(marker_gen)
 
-        st.header(f"📈 TIS 傾斜儀趨勢圖")
-        st.caption(f"監測儀器: {ti_title} | 設備: {selected_device_uuid}")
-
         fig = px.line(
             long_df,
             x="DataTime",
@@ -254,7 +259,7 @@ def main():
             color="series",
             symbol="series",
             markers=True,
-            title=f"傾斜儀讀數變化",
+            title=f"TIS 傾斜儀讀數變化趨勢",
             labels={"DataTime": "監測時間", "value": "讀數", "series": "測點軸向"},
             symbol_map=symbol_map,
         )
@@ -262,23 +267,27 @@ def main():
         fig.update_xaxes(tickformat="%Y-%m-%d %H:%M")
         st.plotly_chart(fig, use_container_width=True)
 
-        with st.expander("查看 TIS 詳細數據表格"):
-            st.dataframe(tis_df, use_container_width=True)
-
     # --- 分隔線 ---
     st.markdown("---")
 
-    # --- VGS 圖表區塊 ---
+    # ==========================
+    #      VGS 監測區塊
+    # ==========================
     st.header(f"📊 VGS 監測數據")
+    st.caption(f"設備: {selected_device_uuid} | 包含 value1 與 value2 讀數")
 
     if vgs_df.empty:
         st.info(f"設備 {selected_device_uuid} 目前無 VGS 數據。")
     else:
-        # VGS 數據處理
+        # 1. 先顯示詳細數據表格
+        with st.expander("查看 VGS 詳細數據表格", expanded=True):
+            st.dataframe(vgs_df, use_container_width=True)
+            st.info(f"總筆數: {len(vgs_df)}")
+
+        # 2. 再顯示趨勢圖
         vgs_plot = vgs_df.copy()
         vgs_plot["Name"] = vgs_plot["name"].str.upper()
 
-        # 轉成長格式
         vgs_long = vgs_plot.melt(
             id_vars=["DataTime", "Name"],
             value_vars=["value1", "value2"],
@@ -286,17 +295,13 @@ def main():
             value_name="Reading"
         )
 
-        # 定義顯示名稱 (例如: VG01_value1)
         vgs_long["Series"] = vgs_long["Name"] + "_" + vgs_long["Channel"]
 
-        # VGS 符號邏輯
         vgs_symbol_map = {}
         vgs_unique_series = sorted(vgs_long["Series"].unique())
         vgs_marker_gen = get_marker_generator()
         for s_name in vgs_unique_series:
             vgs_symbol_map[s_name] = next(vgs_marker_gen)
-
-        st.caption(f"設備: {selected_device_uuid} | 包含 value1 與 value2 讀數")
 
         fig_vgs = px.line(
             vgs_long,
@@ -319,10 +324,6 @@ def main():
         fig_vgs.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
         st.plotly_chart(fig_vgs, use_container_width=True)
-
-        with st.expander("查看 VGS 詳細數據表格"):
-            st.dataframe(vgs_df, use_container_width=True)
-            st.info(f"總筆數: {len(vgs_df)}")
 
 
 if __name__ == "__main__":
