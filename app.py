@@ -151,6 +151,45 @@ def load_vgs_data(device_id):
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=60)
+def load_blfs_data(device_id):
+    """
+    從 MySQL 資料庫中載入特定 device_id 的 BLFS 數據。
+    """
+    db_config = get_db_config()
+    if not db_config.get("host"):
+        return pd.DataFrame()
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # 查詢 BLFS 表格，僅有一個 value 欄位
+        query = """
+        SELECT DataTime, name, value
+        FROM blfs
+        WHERE device_id = %s
+        ORDER BY DataTime DESC;
+        """
+        cursor.execute(query, (device_id,))
+
+        data = cursor.fetchall()
+        column_names = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(data, columns=column_names)
+
+        cursor.close()
+        conn.close()
+
+        if not df.empty:
+            df['DataTime'] = pd.to_datetime(df['DataTime'])
+
+        return df
+
+    except mysql.connector.Error as err:
+        # st.error(f"BLFS 資料載入錯誤: {err}")
+        return pd.DataFrame()
+
+
 @st.cache_data
 def get_device_ids():
     """
@@ -216,6 +255,7 @@ def main():
     with st.spinner(f'正在讀取 {selected_device_uuid} 的所有歷史數據...'):
         tis_df = load_data(selected_device_id)
         vgs_df = load_vgs_data(selected_device_id)
+        blfs_df = load_blfs_data(selected_device_id)
 
     # ==========================
     #      TIS 傾斜儀區塊
@@ -324,6 +364,56 @@ def main():
         fig_vgs.update_xaxes(tickformat="%Y-%m-%d %H:%M")
 
         st.plotly_chart(fig_vgs, use_container_width=True)
+
+    # --- 分隔線 ---
+    st.markdown("---")
+
+    # ==========================
+    #      BLFS 監測區塊
+    # ==========================
+    st.header(f"📉 BLFS 監測數據")
+    st.caption(f"設備: {selected_device_uuid} | 單一數值監測")
+
+    if blfs_df.empty:
+        st.info(f"設備 {selected_device_uuid} 目前無 BLFS 數據。")
+    else:
+        # 1. 先顯示詳細數據表格
+        with st.expander("查看 BLFS 詳細數據表格", expanded=True):
+            st.dataframe(blfs_df, use_container_width=True)
+            st.info(f"總筆數: {len(blfs_df)}")
+
+        # 2. 再顯示趨勢圖
+        blfs_plot = blfs_df.copy()
+        blfs_plot["Series"] = blfs_plot["name"].str.upper()  # 直接使用名稱作為 Series
+
+        # BLFS 符號邏輯
+        blfs_symbol_map = {}
+        blfs_unique_series = sorted(blfs_plot["Series"].unique())
+        blfs_marker_gen = get_marker_generator()
+        for s_name in blfs_unique_series:
+            blfs_symbol_map[s_name] = next(blfs_marker_gen)
+
+        fig_blfs = px.line(
+            blfs_plot,
+            x="DataTime",
+            y="value",
+            color="Series",
+            symbol="Series",
+            markers=True,
+            title=f"BLFS 讀數變化趨勢",
+            labels={"DataTime": "監測時間", "value": "監測讀數", "Series": "測點名稱"},
+            symbol_map=blfs_symbol_map
+        )
+
+        fig_blfs.update_layout(
+            hovermode="x unified",
+            height=450,
+            template="plotly_white",
+            yaxis_title="讀數 (Value)"
+        )
+        fig_blfs.update_xaxes(tickformat="%Y-%m-%d %H:%M")
+
+        st.plotly_chart(fig_blfs, use_container_width=True)
 
 
 if __name__ == "__main__":
